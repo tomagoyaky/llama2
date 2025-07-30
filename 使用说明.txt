@@ -1,0 +1,38 @@
+Ollama Chat 使用说明
+=====================
+
+快速开始：
+1. 确保Ollama已安装并运行
+2. 下载至少一个模型：ollama pull qwen3:0.6b
+3. 运行测试：python test_connection.py
+4. 开始聊天：python chat.py
+
+命令行参数使用：
+python chat.py --model qwen3:0.6b --url http://localhost:11434 --thinking --no-stream
+
+Windows用户：
+- 双击 run.bat 自动运行
+- 或使用命令：run.bat -m qwen3:0.6b -t
+- 或使用命令：python chat.py --model mistral --thinking
+
+Linux/Mac用户：
+- 运行：./run.sh -m qwen3:0.6b -t
+- 或使用命令：python3 chat.py --model mistral --url http://localhost:11434
+
+参数说明：
+-m, --model MODEL    指定使用的模型 (默认: qwen3:0.6b)
+-u, --url URL        指定Ollama服务地址 (默认: http://localhost:11434)
+-t, --thinking       启用thinking模式
+--no-stream          禁用流式响应
+
+常用命令：
+/exit - 退出
+/help - 帮助
+/models - 查看模型
+/model 模型名 - 切换模型
+/clear - 清除历史
+
+遇到问题：
+1. 先运行 test_connection.py 检查连接
+2. 确保Ollama服务正在运行
+3. 检查是否已下载模型
