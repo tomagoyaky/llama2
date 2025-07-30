@@ -81,8 +81,8 @@ if errorlevel 1 (
 
 REM Build command line arguments
 set CMD_ARGS=--model %MODEL% --url %URL%
-if "%THINKING%"=="true" set CMD_ARGS=%CMD_ARGS% --thinking
-if "%NO_STREAM%"=="true" set CMD_ARGS=%CMD_ARGS% --no-stream
+if "%THINKING%"=="true" set CMD_ARGS=%CMD_ARGS% set nothink
+if "%NO_STREAM%"=="true" set CMD_ARGS=%CMD_ARGS% set nostream
 
 REM Run main program
 python chat.py %CMD_ARGS%

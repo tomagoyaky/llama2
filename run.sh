@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             echo "使用方法: $0 [选项]"
             echo "选项:"
-            echo "  -m, --model MODEL    指定使用的模型 (默认: llama2)"
+            echo "  -m, --model MODEL    指定使用的模型 (默认: qwen3:0.6b)"
             echo "  -u, --url URL        指定Ollama服务地址 (默认: http://localhost:11434)"
             echo "  -t, --thinking       启用thinking模式"
             echo "  --no-stream          禁用流式响应"

@@ -12,7 +12,7 @@ import argparse
 from typing import Dict, List, Optional
 
 class OllamaChat:
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "llama2"):
+    def __init__(self, base_url: str = "http://localhost:11434", model: str = "qwen3:0.6b"):
         """
         初始化Ollama聊天客户端
         
@@ -133,7 +133,7 @@ class OllamaChat:
   /help     - 显示此帮助信息
   /clear    - 清除对话历史
   /models   - 显示可用模型
-  /model    - 切换模型 (例如: /model llama2)
+  /model    - 切换模型 (例如: /model qwen3:0.6b)
   /exit     - 退出程序
   /quit     - 退出程序
 """)
@@ -141,8 +141,8 @@ class OllamaChat:
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(description='Ollama Chat - 命令行聊天程序')
-    parser.add_argument('--model', '-m', default='llama2', 
-                        help='使用的模型名称 (默认: llama2)')
+    parser.add_argument('--model', '-m', default='qwen3:0.6b', 
+                        help='使用的模型名称 (默认: qwen3:0.6b)')
     parser.add_argument('--url', '-u', default='http://localhost:11434',
                         help='Ollama服务地址 (默认: http://localhost:11434)')
     parser.add_argument('--thinking', '-t', action='store_true',
@@ -183,20 +183,49 @@ def main():
     print("输入 /exit 或 /quit 退出程序")
     print("-" * 50)
     
-    # 主循环
+    # Send default first input automatically
+    default_input = "帮我创建一个helloworld.c程序文件"
+    print(f"\nYou: {default_input}")
+    wrapped_prompt = (
+        f"你是一个文件生成助手。请根据以下用户需求，生成文件名和文件内容。"
+        f"输出必须严格遵循如下格式：\n"
+        f"文件名: <文件名>\n内容:\n<文件内容>\n"
+        f"用户需求: {default_input}\n"
+        f"不要输出任何解释或多余文本，只输出指定格式的文件名和内容。"
+    )
+    print("[DEBUG] Wrapped prompt sent to Ollama:\n" + wrapped_prompt)
+    response = chat.send_message(wrapped_prompt, stream=not args.no_stream)
+    if response is None:
+        print("❌ Failed to get response. Please check Ollama service status.")
+    else:
+        import re
+        file_match = re.search(r'File(?:name)?:\s*(.+?)\n+Content:?\s*\n([\s\S]+)', response)
+        if file_match:
+            filename = file_match.group(1).strip()
+            filecontent = file_match.group(2).strip()
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(filecontent)
+                print(f"[Local file created: {filename}]")
+            except Exception as e:
+                print(f"[Failed to write file {filename}: {e}]")
+        else:
+            print("[No valid file output detected. Please check your prompt or model reply format.]")
+
+    # Main loop
     while True:
         try:
-            user_input = input("\n你: ").strip()
-            
+            user_input = input("\nYou: ").strip()
+
             if not user_input:
                 continue
-            
-            # 处理命令
+
+            # Handle commands
             if user_input.startswith('/'):
                 command = user_input.lower()
-                
+
                 if command in ['/exit', '/quit']:
-                    print("👋 再见！")
+                    print("👋 Bye!")
                     break
                 elif command == '/help':
                     chat.print_help()
@@ -204,24 +233,52 @@ def main():
                     chat.clear_history()
                 elif command == '/models':
                     models = chat.get_available_models()
-                    print(f"可用模型: {', '.join(models)}")
+                    print(f"Available models: {', '.join(models)}")
                 elif command.startswith('/model '):
                     model_name = user_input[7:].strip()
                     chat.set_model(model_name)
                 else:
-                    print("未知命令，输入 /help 查看可用命令")
+                    print("Unknown command. Type /help for available commands.")
                 continue
-            
-            # 发送消息
-            response = chat.send_message(user_input, stream=not args.no_stream)
+
+            # 用中文封装用户输入，要求 Ollama 严格输出文件名和内容
+            wrapped_prompt = (
+                f"用户需求: {user_input}\n"
+                f"你是一个文件生成助手。请根据以下用户需求，生成文件名和文件内容。"
+                f"输出必须严格遵循如下格式：\n"
+                f"文件名: <文件名>\n内容:\n<文件内容>\n"
+                f"不要输出任何解释或多余文本，只输出指定格式的文件名和内容。"
+            )
+
+            # Debug info: show the actual prompt sent to Ollama
+            print("[DEBUG] Wrapped prompt sent to Ollama:\n" + wrapped_prompt)
+            print("-----------------------------------------------------------------------")
+
+            response = chat.send_message(wrapped_prompt, stream=not args.no_stream)
             if response is None:
-                print("❌ 获取回复失败，请检查Ollama服务状态")
-                
+                print("❌ Failed to get response. Please check Ollama service status.")
+                continue
+
+            # Parse Ollama response for file creation
+            import re
+            file_match = re.search(r'File(?:name)?:\s*(.+?)\n+Content:?\s*\n([\s\S]+)', response)
+            if file_match:
+                filename = file_match.group(1).strip()
+                filecontent = file_match.group(2).strip()
+                try:
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(filecontent)
+                    print(f"[Local file created: {filename}]")
+                except Exception as e:
+                    print(f"[Failed to write file {filename}: {e}")
+            else:
+                print("[No valid file output detected. Please check your prompt or model reply format.]")
+
         except KeyboardInterrupt:
-            print("\n\n👋 再见！")
+            print("\n\n👋 Bye!")
             break
         except EOFError:
-            print("\n\n👋 再见！")
+            print("\n\n👋 Bye!")
             break
 
 if __name__ == "__main__":
